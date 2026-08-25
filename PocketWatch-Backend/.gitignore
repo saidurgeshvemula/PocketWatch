@@ -1,0 +1,20 @@
+# Environment / secrets
+.env
+*.env
+
+# Maven
+target/
+
+# Uploads
+uploads/
+
+# IntelliJ
+.idea/
+*.iml
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,8 @@
+target/
+uploads/
+.idea/
+.env
+*.env
+.git/
+.mvn/wrapper/maven-wrapper.jar
+*.md
