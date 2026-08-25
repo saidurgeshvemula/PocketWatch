@@ -1,21 +1,24 @@
-FROM maven:3.9-eclipse-temurin-21 AS build
-WORKDIR /app
 
-COPY pom.xml .
-RUN mvn -B dependency:go-offline
+version: '3.9'
 
-COPY src ./src
-RUN mvn -B clean package -DskipTests
+services:
 
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
+  mysql:
+    image: mysql:8.0
+    container_name: et_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: expensedb
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-RUN addgroup -S spring && adduser -S spring -G spring
-RUN chown -R spring:spring /app
-USER spring
-
-COPY --from=build --chown=spring:spring /app/target/*.jar app.jar
-
-EXPOSE 8080
-
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+volumes:
+  mysql_data:
