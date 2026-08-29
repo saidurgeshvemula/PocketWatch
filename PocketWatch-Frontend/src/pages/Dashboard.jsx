@@ -761,10 +761,7 @@ export default function Dashboard() {
               ) : (
 
                 <p className="text-sm text-fg-muted leading-relaxed">
-                  Generate a plain-language read on this month —
-                  income, spend, largest merchant, and where
-                  you can save — written like a briefing,
-                  not a chart.
+                   No summary yet.
                 </p>
 
               )}
