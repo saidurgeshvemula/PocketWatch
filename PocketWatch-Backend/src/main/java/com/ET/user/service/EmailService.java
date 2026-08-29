@@ -3,46 +3,78 @@ package com.ET.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    private final RestTemplate restTemplate;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
+    @Value("${sendgrid.api-key}")
+    private String sendgridApiKey;
+
+    @Value("${sendgrid.from-address}")
+    private String fromAddress;
+
+    @Value("${sendgrid.from-name:PocketWatch}")
+    private String fromName;
+
+    private static final String SENDGRID_API_URL = "https://api.sendgrid.com/v3/mail/send";
+
     @Async("fileProcessingExecutor")
     public void sendVerificationEmail(String to, String token) {
+        String link = frontendUrl + "/verify-email?token=" + token;
         send(to, "Verify your PocketWatch email",
-                "Click to verify your email:\n" + frontendUrl + "/verify-email?token=" + token +
-                        "\n\nThis link expires in 24 hours.");
+                "Click to verify your email:\n" + link + "\n\nThis link expires in 24 hours.",
+                "<p>Click below to verify your email:</p><p><a href=\"" + link + "\">Verify Email</a></p>" +
+                        "<p>This link expires in 24 hours.</p>");
     }
 
     @Async("fileProcessingExecutor")
     public void sendPasswordResetEmail(String to, String token) {
+        String link = frontendUrl + "/reset-password?token=" + token;
         send(to, "Reset your PocketWatch password",
-                "Click to reset your password:\n" + frontendUrl + "/reset-password?token=" + token +
-                        "\n\nThis link expires in 1 hour. If you didn't request this, ignore this email.");
+                "Click to reset your password:\n" + link +
+                        "\n\nThis link expires in 1 hour. If you didn't request this, ignore this email.",
+                "<p>Click below to reset your password:</p><p><a href=\"" + link + "\">Reset Password</a></p>" +
+                        "<p>This link expires in 1 hour. If you didn't request this, ignore this email.</p>");
     }
 
-    private void send(String to, String subject, String text) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(text);
-
+    private void send(String to, String subject, String textBody, String htmlBody) {
         try {
-            mailSender.send(message);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(sendgridApiKey);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, Object> payload = Map.of(
+                    "personalizations", List.of(Map.of(
+                            "to", List.of(Map.of("email", to))
+                    )),
+                    "from", Map.of("email", fromAddress, "name", fromName),
+                    "subject", subject,
+                    "content", List.of(
+                            Map.of("type", "text/plain", "value", textBody),
+                            Map.of("type", "text/html", "value", htmlBody)
+                    )
+            );
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+            restTemplate.postForEntity(SENDGRID_API_URL, request, String.class);
             log.info("Email sent to {}: {}", to, subject);
         } catch (Exception e) {
-
             log.error("Failed to send email to {} ({}): {}", to, subject, e.getMessage());
         }
     }
