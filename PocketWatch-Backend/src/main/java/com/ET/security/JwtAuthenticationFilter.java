@@ -1,9 +1,11 @@
 package com.ET.security;
 
+import com.ET.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,12 +25,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsServiceImpl userDetailsService;
-
+    private final UserRepository userRepository;
     @Override
+
     protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
         String token = extractTokenFromRequest(request);
@@ -39,20 +42,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if ("access".equals(tokenType)) {
 
                 String email = jwtTokenProvider.extractEmail(token);
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                int tokenVersion = jwtTokenProvider.extractTokenVersion(token);
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+                boolean isCurrentVersion = userRepository.findByEmail(email)
+                        .map(user -> user.getTokenVersion() == tokenVersion)
+                        .orElse(false);
 
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
+                if (isCurrentVersion) {
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
+
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    log.warn("Rejected token with stale tokenVersion for {}", email);
+                }
             }
         }
 

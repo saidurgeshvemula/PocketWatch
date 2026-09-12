@@ -189,7 +189,29 @@ public class UserService {
                         new ResourceNotFoundException("User not found")
                 );
 
+        int tokenVersion = jwtTokenProvider.extractTokenVersion(refreshToken);
+        if (tokenVersion != user.getTokenVersion()) {
+            throw new BusinessException(
+                    "Session has been revoked. Please log in again."
+            );
+        }
+
         return generateAuthResponse(user);
+    }
+
+    // ============================================================
+    // LOGOUT FROM ALL DEVICES
+    // ============================================================
+
+    @Transactional
+    public void logoutAllDevices(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        user.setTokenVersion(user.getTokenVersion() + 1);
+        userRepository.save(user);
+
+        log.info("All tokens invalidated for user: {}", user.getEmail());
     }
 
     // ============================================================
@@ -240,6 +262,8 @@ public class UserService {
         user.setPasswordHash(
                 passwordEncoder.encode(newPassword)
         );
+        // Invalidate any tokens issued before this reset
+        user.setTokenVersion(user.getTokenVersion() + 1);
 
         userRepository.save(user);
 
@@ -363,12 +387,14 @@ public class UserService {
                 jwtTokenProvider.generateAccessToken(
                         user.getEmail(),
                         user.getId(),
-                        user.getRole().name()
+                        user.getRole().name(),
+                        user.getTokenVersion()
                 );
 
         String refreshToken =
                 jwtTokenProvider.generateRefreshToken(
-                        user.getEmail()
+                        user.getEmail(),
+                        user.getTokenVersion()
                 );
 
         return AuthResponse.of(

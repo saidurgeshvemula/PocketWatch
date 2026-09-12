@@ -29,28 +29,29 @@ public class JwtTokenProvider {
         this.refreshTokenExpiryMs = refreshTokenExpiryMs;
     }
 
-    public String generateAccessToken(String email, Long userId, String role) {
+    public String generateAccessToken(String email, Long userId, String role, int tokenVersion) {
         return Jwts.builder()
                 .subject(email)
                 .claim("userId", userId)
                 .claim("role", role)
                 .claim("type", "access")
+                .claim("tokenVersion", tokenVersion)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + accessTokenExpiryMs))
                 .signWith(secretKey)
                 .compact();
     }
 
-    public String generateRefreshToken(String email) {
+    public String generateRefreshToken(String email, int tokenVersion) {
         return Jwts.builder()
                 .subject(email)
                 .claim("type", "refresh")
+                .claim("tokenVersion", tokenVersion)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + refreshTokenExpiryMs))
                 .signWith(secretKey)
                 .compact();
     }
-
     public boolean validateToken(String token) {
         try {
             getClaims(token);
@@ -74,7 +75,10 @@ public class JwtTokenProvider {
     public String extractTokenType(String token) {
         return getClaims(token).get("type", String.class);
     }
-
+    public int extractTokenVersion(String token) {
+        Integer version = getClaims(token).get("tokenVersion", Integer.class);
+        return version != null ? version : 0;
+    }
     public long getRefreshTokenExpiryMs() {
         return refreshTokenExpiryMs;
     }

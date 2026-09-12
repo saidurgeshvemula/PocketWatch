@@ -35,7 +35,9 @@ public class User extends AuditableEntity {
 
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified;
-
+    @Column(name = "token_version", nullable = false)
+    @Builder.Default
+    private int tokenVersion = 0;
     public enum Role {
         USER, ADMIN
     }

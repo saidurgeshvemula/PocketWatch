@@ -68,7 +68,14 @@ public class AuthController {
         userService.resetPassword(request.token(), request.newPassword());
         return ResponseEntity.ok(ApiResponse.success("Password reset successful"));
     }
-
+    @PostMapping("/logout-all")
+    public ResponseEntity<ApiResponse<Void>> logoutAllDevices(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        Long userId = userService.getMe(userDetails).id();
+        userService.logoutAllDevices(userId);
+        return ResponseEntity.ok(ApiResponse.success("Logged out from all devices"));
+    }
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getMe(
             @AuthenticationPrincipal UserDetails userDetails
