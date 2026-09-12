@@ -20,51 +20,51 @@ class JwtTokenProviderTest {
 
     @Test
     void generateAccessToken_shouldReturnNonNullToken() {
-        String token = jwtTokenProvider.generateAccessToken("user@test.com", 1L, "USER");
+        String token = jwtTokenProvider.generateAccessToken("user@test.com", 1L, "USER", 0);
         assertThat(token).isNotNull().isNotBlank();
     }
 
     @Test
     void generateAccessToken_shouldContainThreeParts() {
 
-        String token = jwtTokenProvider.generateAccessToken("user@test.com", 1L, "USER");
+        String token = jwtTokenProvider.generateAccessToken("user@test.com", 1L, "USER", 0);
         assertThat(token.split("\\.")).hasSize(3);
     }
 
     @Test
     void extractEmail_shouldReturnCorrectEmail() {
         String email = "user@test.com";
-        String token = jwtTokenProvider.generateAccessToken(email, 1L, "USER");
+        String token = jwtTokenProvider.generateAccessToken(email, 1L, "USER", 0);
         assertThat(jwtTokenProvider.extractEmail(token)).isEqualTo(email);
     }
 
     @Test
     void extractUserId_shouldReturnCorrectUserId() {
-        String token = jwtTokenProvider.generateAccessToken("user@test.com", 42L, "USER");
+        String token = jwtTokenProvider.generateAccessToken("user@test.com", 42L, "USER", 0);
         assertThat(jwtTokenProvider.extractUserId(token)).isEqualTo(42L);
     }
 
     @Test
     void extractTokenType_accessToken_shouldReturnAccess() {
-        String token = jwtTokenProvider.generateAccessToken("user@test.com", 1L, "USER");
+        String token = jwtTokenProvider.generateAccessToken("user@test.com", 1L, "USER", 0);
         assertThat(jwtTokenProvider.extractTokenType(token)).isEqualTo("access");
     }
 
     @Test
     void generateRefreshToken_shouldReturnNonNullToken() {
-        String token = jwtTokenProvider.generateRefreshToken("user@test.com");
+        String token = jwtTokenProvider.generateRefreshToken("user@test.com", 0);
         assertThat(token).isNotNull().isNotBlank();
     }
 
     @Test
     void extractTokenType_refreshToken_shouldReturnRefresh() {
-        String token = jwtTokenProvider.generateRefreshToken("user@test.com");
+        String token = jwtTokenProvider.generateRefreshToken("user@test.com", 0);
         assertThat(jwtTokenProvider.extractTokenType(token)).isEqualTo("refresh");
     }
 
     @Test
     void validateToken_validToken_shouldReturnTrue() {
-        String token = jwtTokenProvider.generateAccessToken("user@test.com", 1L, "USER");
+        String token = jwtTokenProvider.generateAccessToken("user@test.com", 1L, "USER", 0);
         assertThat(jwtTokenProvider.validateToken(token)).isTrue();
     }
 
@@ -72,13 +72,13 @@ class JwtTokenProviderTest {
     void validateToken_expiredToken_shouldReturnFalse() {
 
         JwtTokenProvider expiredProvider = new JwtTokenProvider(SECRET, -1L, -1L);
-        String token = expiredProvider.generateAccessToken("user@test.com", 1L, "USER");
+        String token = expiredProvider.generateAccessToken("user@test.com", 1L, "USER", 0);
         assertThat(jwtTokenProvider.validateToken(token)).isFalse();
     }
 
     @Test
     void validateToken_tamperedToken_shouldReturnFalse() {
-        String token = jwtTokenProvider.generateAccessToken("user@test.com", 1L, "USER");
+        String token = jwtTokenProvider.generateAccessToken("user@test.com", 1L, "USER", 0);
 
         String[] parts = token.split("\\.");
         String tamperedToken = parts[0] + "." + parts[1] + ".invalidsignature";
@@ -97,8 +97,8 @@ class JwtTokenProviderTest {
 
     @Test
     void tokens_forDifferentUsers_shouldBeDifferent() {
-        String token1 = jwtTokenProvider.generateAccessToken("user1@test.com", 1L, "USER");
-        String token2 = jwtTokenProvider.generateAccessToken("user2@test.com", 2L, "USER");
+        String token1 = jwtTokenProvider.generateAccessToken("user1@test.com", 1L, "USER", 0);
+        String token2 = jwtTokenProvider.generateAccessToken("user2@test.com", 2L, "USER", 0);
         assertThat(token1).isNotEqualTo(token2);
     }
 }

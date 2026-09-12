@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -44,9 +45,9 @@ class UserServiceTest {
             u.setId(1L);
             return u;
         });
-        when(jwtTokenProvider.generateAccessToken(anyString(), anyLong(), anyString()))
+        when(jwtTokenProvider.generateAccessToken(anyString(), anyLong(), anyString(), anyInt()))
                 .thenReturn("access-token");
-        when(jwtTokenProvider.generateRefreshToken(anyString()))
+        when(jwtTokenProvider.generateRefreshToken(anyString(), anyInt()))
                 .thenReturn("refresh-token");
 
         AuthResponse response = userService.register(request);
@@ -82,14 +83,14 @@ class UserServiceTest {
             u.setId(1L);
             return u;
         });
-        when(jwtTokenProvider.generateAccessToken(any(), any(), any())).thenReturn("token");
-        when(jwtTokenProvider.generateRefreshToken(any())).thenReturn("refresh");
+        when(jwtTokenProvider.generateAccessToken(any(), any(), any(), anyInt())).thenReturn("token");
+        when(jwtTokenProvider.generateRefreshToken(any(), anyInt())).thenReturn("refresh");
 
         userService.register(request);
 
         verify(userRepository).save(argThat(u ->
                 u.getPasswordHash().equals("$2a$12$hashedvalue") &&
-                !u.getPasswordHash().equals("plainpassword")
+                        !u.getPasswordHash().equals("plainpassword")
         ));
     }
 
