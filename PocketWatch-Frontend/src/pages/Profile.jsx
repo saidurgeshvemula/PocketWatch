@@ -1,6 +1,10 @@
-import { CalendarDays, Mail, Receipt, Tags } from 'lucide-react'
+import { CalendarDays, Mail, Receipt, Tags, LogOut } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
-import { useProfile, useTransactions, useCategories } from '@/api/queries'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/components/ui/toast'
+import { useProfile, useTransactions, useCategories, useLogoutAllDevices } from '@/api/queries'
+import { useAuth } from '@/context/AuthContext'
 import { formatDate } from '@/utils/date'
 
 const initials = (fullName) => {
@@ -14,8 +18,33 @@ const initials = (fullName) => {
 export default function Profile() {
   const { data: profile, isLoading } = useProfile()
   const { data: categories } = useCategories()
+  const { logout } = useAuth()
+  const { toast } = useToast()
+  const navigate = useNavigate()
 
   const { data: txPage } = useTransactions({ page: 0, size: 1 })
+
+  const logoutAllDevices = useLogoutAllDevices()
+
+  const handleLogoutAllDevices = async () => {
+    const confirmed = window.confirm(
+      'This will sign you out on every device, including this one. Continue?'
+    )
+    if (!confirmed) return
+
+    try {
+      await logoutAllDevices.mutateAsync()
+      toast({ title: 'Logged out from all devices', variant: 'success' })
+      logout()
+      navigate('/login')
+    } catch (err) {
+      toast({
+        title: 'Something went wrong',
+        description: err.response?.data?.message || 'Please try again.',
+        variant: 'error',
+      })
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-4xl">
@@ -81,6 +110,22 @@ export default function Profile() {
             </div>
           </div>
         </div>
+      </Card>
+
+      <Card className="p-6">
+        <h3 className="font-display text-lg mb-1">Security</h3>
+        <p className="text-fg/50 text-sm mb-4">
+          Signed in somewhere you don't recognize, or just lost your phone?
+          This signs you out everywhere at once, including this device.
+        </p>
+        <Button
+          variant="destructive"
+          onClick={handleLogoutAllDevices}
+          disabled={logoutAllDevices.isPending}
+        >
+          <LogOut size={16} className="mr-2" />
+          {logoutAllDevices.isPending ? 'Logging out…' : 'Log out of all devices'}
+        </Button>
       </Card>
     </div>
   )

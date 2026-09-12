@@ -281,7 +281,11 @@ export function useResendVerification() {
     mutationFn: async (email) => unwrap(await api.post('/auth/resend-verification', { email })),
   })
 }
-
+export function useLogoutAllDevices() {
+  return useMutation({
+    mutationFn: async () => unwrap(await api.post('/auth/logout-all')),
+  })
+}
 export function useProfile() {
   return useQuery({
     queryKey: ['profile'],
