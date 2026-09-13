@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { CurrencyRainHero } from '@/components/ui/currency-rain-hero'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
+import { useResendVerification } from '@/api/queries'
+
+const RESEND_COOLDOWN_SECONDS = 60
 
 export default function Login() {
   const { login } = useAuth()
@@ -13,6 +16,12 @@ export default function Login() {
   const location = useLocation()
 
   const [serverError, setServerError] = useState('')
+  const [unverifiedEmail, setUnverifiedEmail] = useState('')
+  const [resendMessage, setResendMessage] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+
+  const resendVerification = useResendVerification()
+  const cooldownRef = useRef(null)
 
   const successMessage = location.state?.message
 
@@ -22,17 +31,58 @@ export default function Login() {
     formState: { errors, isSubmitting },
   } = useForm()
 
+  useEffect(() => {
+    return () => clearInterval(cooldownRef.current)
+  }, [])
+
+  const startCooldown = () => {
+    setCooldown(RESEND_COOLDOWN_SECONDS)
+    clearInterval(cooldownRef.current)
+    cooldownRef.current = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(cooldownRef.current)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
   const onSubmit = async (values) => {
     setServerError('')
+    setUnverifiedEmail('')
+    setResendMessage('')
 
     try {
       await login(values)
       navigate('/dashboard')
     } catch (err) {
-      setServerError(
+      const message =
         err.response?.data?.message ||
-          'Could not sign in. Check your credentials.'
+        'Could not sign in. Check your credentials.'
+
+      setServerError(message)
+
+      if (message.toLowerCase().includes('verify your email')) {
+        setUnverifiedEmail(values.email)
+      }
+    }
+  }
+
+  const handleResend = async () => {
+    if (!unverifiedEmail || cooldown > 0) return
+
+    setResendMessage('')
+
+    try {
+      await resendVerification.mutateAsync(unverifiedEmail)
+      setResendMessage(
+        "Sent! Check your inbox (and spam folder) for the link."
       )
+      startCooldown()
+    } catch {
+      setResendMessage('Could not resend right now. Please try again shortly.')
     }
   }
 
@@ -61,6 +111,29 @@ export default function Login() {
             {serverError && (
               <div className="rounded-control bg-debit-light text-debit px-3 py-2 text-sm border border-debit/20">
                 {serverError}
+
+                {unverifiedEmail && (
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={resendVerification.isPending || cooldown > 0}
+                      className="text-xs font-medium text-brass underline underline-offset-4 disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+                    >
+                      {cooldown > 0
+                        ? `Resend available in ${cooldown}s`
+                        : resendVerification.isPending
+                        ? 'Sending...'
+                        : "Didn't get the link? Resend it"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {resendMessage && (
+              <div className="rounded-control bg-credit-light text-credit px-3 py-2 text-sm border border-credit/20">
+                {resendMessage}
               </div>
             )}
 
