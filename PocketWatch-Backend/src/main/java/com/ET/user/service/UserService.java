@@ -124,7 +124,7 @@ public class UserService {
         issueToken(
                 user,
                 VerificationToken.Type.EMAIL_VERIFY,
-                15,
+                1440,
                 token -> emailService.sendVerificationEmail(
                         user.getEmail(),
                         token
@@ -227,7 +227,7 @@ public class UserService {
                 issueToken(
                         user,
                         VerificationToken.Type.PASSWORD_RESET,
-                        15,
+                        1440,
                         token -> emailService.sendPasswordResetEmail(
                                 user.getEmail(),
                                 token
@@ -359,7 +359,7 @@ public class UserService {
                         );
 
         // Check whether token is already used
-        // OR has passed its 15-minute expiration time
+        // OR has passed its 24-hour expiration time
         if (verificationToken.isUsed()
                 || verificationToken.getExpiresAt()
                 .isBefore(LocalDateTime.now())) {
