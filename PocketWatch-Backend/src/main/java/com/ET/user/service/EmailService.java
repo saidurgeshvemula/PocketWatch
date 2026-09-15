@@ -3,12 +3,10 @@ package com.ET.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.Map;
@@ -18,7 +16,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class EmailService {
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -55,10 +53,6 @@ public class EmailService {
 
     private void send(String to, String subject, String textBody, String htmlBody) {
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(sendgridApiKey);
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
             Map<String, Object> payload = Map.of(
                     "personalizations", List.of(Map.of(
                             "to", List.of(Map.of("email", to))
@@ -71,8 +65,13 @@ public class EmailService {
                     )
             );
 
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-            restTemplate.postForEntity(SENDGRID_API_URL, request, String.class);
+            restClient.post()
+                    .uri(SENDGRID_API_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .headers(h -> h.setBearerAuth(sendgridApiKey))
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
             log.info("Email sent to {}: {}", to, subject);
         } catch (Exception e) {
             log.error("Failed to send email to {} ({}): {}", to, subject, e.getMessage());
