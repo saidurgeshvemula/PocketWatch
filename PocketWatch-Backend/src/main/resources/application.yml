@@ -110,7 +110,9 @@ spring:
 logging:
   level:
     com.ET: DEBUG
-
+app:
+  rate-limit:
+    enabled: false
 ---
 spring:
   config:
