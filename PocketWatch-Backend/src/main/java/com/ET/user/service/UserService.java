@@ -59,11 +59,11 @@ public class UserService {
 
         User finalUser = user;
 
-        // Email verification token expires after 15 minutes
+
         issueToken(
                 user,
                 VerificationToken.Type.EMAIL_VERIFY,
-                15,
+                1440,
                 token -> emailService.sendVerificationEmail(
                         finalUser.getEmail(),
                         token
@@ -108,28 +108,12 @@ public class UserService {
     // RESEND VERIFICATION EMAIL
     // ============================================================
 
-    @Transactional
     public void resendVerification(String email) {
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("User not found")
-                );
-
-        if (user.isEmailVerified()) {
-            return;
-        }
-
-        // Resent email verification token also expires after 15 minutes
-        issueToken(
-                user,
-                VerificationToken.Type.EMAIL_VERIFY,
-                1440,
-                token -> emailService.sendVerificationEmail(
-                        user.getEmail(),
-                        token
-                )
-        );
+        userRepository.findByEmail(email)
+                .filter(user -> !user.isEmailVerified())
+                .ifPresent(user -> issueToken(user, VerificationToken.Type.EMAIL_VERIFY, 1440,
+                        token -> emailService.sendVerificationEmail(user.getEmail(), token)));
     }
 
     // ============================================================
@@ -223,7 +207,6 @@ public class UserService {
 
         userRepository.findByEmail(email).ifPresent(user ->
 
-                // Password reset token expires after 15 minutes
                 issueToken(
                         user,
                         VerificationToken.Type.PASSWORD_RESET,
@@ -328,7 +311,10 @@ public class UserService {
         } catch (Exception e) {
 
             log.error(
-                    "Email sending failed",
+                    "Email sending failed for {} to {}: {}",
+                    type,
+                    user.getEmail(),
+                    e.getMessage(),
                     e
             );
 

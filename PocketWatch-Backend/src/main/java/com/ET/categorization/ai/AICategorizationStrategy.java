@@ -123,9 +123,7 @@ public class AICategorizationStrategy {
 
             String userPrompt = objectMapper.writeValueAsString(requestItems);
 
-            log.info("========== AI REQUEST ==========");
-            log.info(userPrompt);
-            log.info("================================");
+            log.debug("AI request: {}", userPrompt);
 
             List<ChatMessage> messages = List.of(
                     ChatMessage.system(SYSTEM_PROMPT),
@@ -134,9 +132,7 @@ public class AICategorizationStrategy {
 
             String response = callAIWithRetry(messages);
 
-            log.info("========== AI RESPONSE ==========");
-            log.info(response);
-            log.info("=================================");
+            log.debug("AI response: {}", response);
 
             List<AICategorizationResponseItem> items =
                     parseResponse(response);

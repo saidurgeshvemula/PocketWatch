@@ -54,12 +54,17 @@ public class JwtTokenProvider {
     }
     public boolean validateToken(String token) {
         try {
+            if (token == null || token.trim().isEmpty()) {
+                return false;
+            }
             getClaims(token);
             return true;
         } catch (ExpiredJwtException e) {
             log.warn("JWT token expired");
         } catch (JwtException e) {
             log.warn("Invalid JWT token: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid JWT token argument: {}", e.getMessage());
         }
         return false;
     }
