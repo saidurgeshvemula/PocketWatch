@@ -43,12 +43,13 @@ CREATE TABLE category_rules (
     CONSTRAINT fk_rules_category FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE
 );
 
-ALTER TABLE transactions
-    ADD COLUMN merchant_id         BIGINT       NULL AFTER merchant_name,
-    ADD COLUMN category_source     VARCHAR(20)  NULL AFTER merchant_id,
-    ADD COLUMN category_confidence INT          NULL AFTER category_source,
-    ADD COLUMN category_reason     VARCHAR(255) NULL AFTER category_confidence,
-    ADD CONSTRAINT fk_tx_merchant FOREIGN KEY (merchant_id) REFERENCES merchants (id) ON DELETE SET NULL;
+-- TiDB does not support multiple schema changes in one ALTER with a foreign key,
+-- so each change is its own statement, with the foreign key last.
+ALTER TABLE transactions ADD COLUMN merchant_id BIGINT NULL AFTER merchant_name;
+ALTER TABLE transactions ADD COLUMN category_source VARCHAR(20) NULL AFTER merchant_id;
+ALTER TABLE transactions ADD COLUMN category_confidence INT NULL AFTER category_source;
+ALTER TABLE transactions ADD COLUMN category_reason VARCHAR(255) NULL AFTER category_confidence;
+ALTER TABLE transactions ADD CONSTRAINT fk_tx_merchant FOREIGN KEY (merchant_id) REFERENCES merchants (id) ON DELETE SET NULL;
 
 INSERT INTO category_rules (keyword, category_id, priority, created_at)
 SELECT 'ATM', id, 10, NOW() FROM categories WHERE name = 'Cash Withdrawal'
