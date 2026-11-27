@@ -21,16 +21,16 @@ public class EmailService {
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
-    @Value("${sendgrid.api-key}")
-    private String sendgridApiKey;
+    @Value("${brevo.api-key}")
+    private String brevoApiKey;
 
-    @Value("${sendgrid.from-address}")
+    @Value("${brevo.from-address}")
     private String fromAddress;
 
-    @Value("${sendgrid.from-name:PocketWatch}")
+    @Value("${brevo.from-name:PocketWatch}")
     private String fromName;
 
-    private static final String SENDGRID_API_URL = "https://api.sendgrid.com/v3/mail/send";
+    private static final String BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
     @Async("fileProcessingExecutor")
     public void sendVerificationEmail(String to, String token) {
@@ -54,21 +54,18 @@ public class EmailService {
     private void send(String to, String subject, String textBody, String htmlBody) {
         try {
             Map<String, Object> payload = Map.of(
-                    "personalizations", List.of(Map.of(
-                            "to", List.of(Map.of("email", to))
-                    )),
-                    "from", Map.of("email", fromAddress, "name", fromName),
+                    "sender", Map.of("email", fromAddress, "name", fromName),
+                    "to", List.of(Map.of("email", to)),
                     "subject", subject,
-                    "content", List.of(
-                            Map.of("type", "text/plain", "value", textBody),
-                            Map.of("type", "text/html", "value", htmlBody)
-                    )
+                    "htmlContent", htmlBody,
+                    "textContent", textBody
             );
 
             restClient.post()
-                    .uri(SENDGRID_API_URL)
+                    .uri(BREVO_API_URL)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .headers(h -> h.setBearerAuth(sendgridApiKey))
+                    .accept(MediaType.APPLICATION_JSON)
+                    .header("api-key", brevoApiKey)
                     .body(payload)
                     .retrieve()
                     .toBodilessEntity();
